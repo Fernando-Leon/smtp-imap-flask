@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Correo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="w-full h-screen p-4 flex flex-col">
+        <!-- Enlace para regresar al índice -->
+        <a href="/" class="bg-slate-400 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded flex-none w-auto self-start"> Regresar </a>
+
+        <div class="flex-auto flex items-center justify-center">
+            <form action="/nuevo_correo" method="post" class="max-w-md mx-auto bg-slate-50 p-4 rounded-xl shadow-slate-300 shadow-xl h-1/2">
+                <h1 class="text-2xl w-full text-center p-4">Nuevo Correo</h1>
+                <label for="destinatario">Destinatario:</label>
+                <input type="email" name="destinatario" required class="w-full p-2 mb-2 border-b-2">
+    
+                <label for="asunto">Asunto:</label>
+                <input type="text" name="asunto" required class="w-full p-2 mb-2 border-b-2">
+    
+                <label for="contenido">Contenido:</label>
+                <textarea name="contenido" required class="w-full p-2 mb-2 border-b-2"></textarea>
+    
+                <button type="submit" class="bg-slate-400 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded">Enviar Correo</button>
+            </form>
+        </div>
+        
+    </div>
+</body>
+</html>

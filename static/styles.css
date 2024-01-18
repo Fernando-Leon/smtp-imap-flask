@@ -1,0 +1,11 @@
+/* static/styles.css */
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Agrega algunas clases de prueba */
+body {
+  @apply bg-gray-200; /* Clase de fondo gris */
+}
+
+/* Agrega el resto de tus estilos personalizados aquí */
