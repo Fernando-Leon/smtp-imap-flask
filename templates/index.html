@@ -9,23 +9,22 @@
 </head>
 <body>
     <div class="w-full h-screen bg-slate-50 p-4">
-        <a href="{{ url_for('nuevo_correo') }}" class="bg-slate-400 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded"> Nuevo Correo </a>
-        <h1 class="text-2xl w-full text-center p-4">Lista de Correos</h1>
+        <a href="{{ url_for('nuevo_correo') }}" class="bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded"> Nuevo Correo </a>
+        <h1 class="w-full p-4 text-2xl text-center font-semibold pb-4">Lista de Correos</h1>
         
         <ul class="list-disc pl-4 bg-slate-50 p-4 rounded-xl shadow-slate-300 shadow-xl">
-                <li class="w-full flex items-center justify-between border-b-2 pb-4 pt-4 pr-2 pl-2">
-                    <span class="font-bold text-slate-800">Remitente</span>
-                    <span class="font-bold text-slate-800">Asunto</span>
-                    <span class="font-bold text-slate-800">Fecha</span>
-                    <span class="font-bold text-slate-800">Ver completo</span>
+                <li class="w-full flex items-center justify-between pb-4 pt-4 pr-2 pl-2 ">
+                    <span class="font-bold pt-2 pb-2 pl-2 text-slate-800 border-blue-400 border-l-2">Remitente</span>
+                    <span class="font-bold pt-2 pb-2 pl-2 text-slate-800 border-blue-400 border-l-2">Asunto</span>
+                    <span class="font-bold pt-2 pb-2 pl-2 text-slate-800 border-blue-400 border-l-2">Fecha</span>
+                    <span class="font-bold pt-2 pb-2 pl-2 text-slate-800 border-blue-400 border-l-2">Ver completo</span>
                 </li>
             {% for correo in correos %}
-            <li class="w-full flex items-center justify-between border-b-2 pb-4 pt-4 pr-2 pl-2">
-                <span class="flex-shrink-0 w-1/4 text-gray-600 overflow-hidden text-left">{{ correo.remitente }}</span>
-                <span class="flex-shrink-0 w-1/4 text-lg overflow-hidden">{{ correo.asunto }}</span>
-                <span class="flex-shrink-0 w-1/4">{{ correo.fecha }}</span>
-                <button class="flex-shrink-0 bg-slate-400 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded" onclick="verCorreo('{{ correo.contenido|tojson|safe }}')"> Ver </button>
-
+            <li class="w-full flex items-center justify-between pb-4 pt-4 pr-2 pl-2 border-b-gray-200 border-b-2">
+                <span class="pl-2 flex-shrink-0 w-1/4 text-lg font-thin overflow-hidden text-left">{{ correo.remitente }}</span>
+                <span class="pl-2 flex-shrink-0 w-1/4 text-lg font-thin text-left overflow-hidden">{{ correo.asunto }}</span>
+                <span class="pl-2 flex-shrink-0 w-1/4 text-lg font-thin text-left overflow-hidden">{{ correo.fecha }}</span>
+                <button class="flex-shrink-0 bg-blue-400 hover:bg-blue-500 text-white ease-in duration-300 font-bold py-2 px-4 rounded" onclick="verCorreo('{{ correo.id }}')"> Ver </button>
             </li>
             
             {% endfor %}
@@ -35,28 +34,43 @@
     <!-- Modal -->
     <div id="modal" class="hidden fixed inset-0 bg-gray-700 bg-opacity-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen">
-            <div class="bg-white p-4 max-w-md mx-auto">
+            <div class="bg-white p-6 pb-8 max-w-2xl mx-auto">
                 <div class="text-right">
-                    <button onclick="cerrarModal()" class="text-gray-600 hover:text-gray-800">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <button onclick="cerrarModal()" class="text-white hover:bg-blue-500 hover:text-blue-100 ease-in duration-300 rounded-full bg-blue-400 p-1 shadow-sm shadow-slate-600">
+                        <svg class="h-6 w-6" fill="#FFF" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
-                <div id="contenido-modal"></div>
+                <h3 class="text-2xl text-center font-semibold pb-4">Detalles del Correo</h3>
+                <span class="font-medium p-2 border-blue-400 border-l-2">Remitente: </span>
+                <div class="p-2 pb-3 pt-4" id="remitente-modal"></div>
+                <span class="font-medium p-2 border-blue-400 border-l-2">Asunto: </span>
+                <div class="p-2 pb-3 pt-4" id="asunto-modal"></div>
+                <span class="font-medium p-2 border-blue-400 border-l-2">Fecha: </span>
+                <div class="p-2 pb-3 pt-4" id="fecha-modal"></div>
+                <span class="font-medium p-2 border-blue-400 border-l-2">Contenido: </span>
+                <div class="p-2 pb-3 pt-4 text-pretty" id="contenido-modal"></div>
             </div>
         </div>
     </div>
 
     <script>
-        function verCorreo(contenido) {
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('contenido-modal').innerHTML = contenido;
-        }
+        function verCorreo(correoId) {
+            fetch(`/obtener_correo/${correoId}`)
+                .then(response => response.json())
+                .then(correo => {
+                    document.getElementById('modal').classList.remove('hidden');
+                    document.getElementById('asunto-modal').innerHTML = correo.asunto;
+                    document.getElementById('fecha-modal').innerHTML = correo.fecha;
+                    document.getElementById('remitente-modal').innerHTML = correo.remitente;
+                    document.getElementById('contenido-modal').innerHTML = correo.contenido;
+                })
+                .catch(error => console.error("Error al obtener los detalles del correo:", error));
+        }   
 
         function cerrarModal() {
-            document.getElementById('modal').classList.add('hidden');            
-            document.getElementById('contenido-modal').innerHTML = '';
+            document.getElementById('modal').classList.add('hidden');
         }
     </script>
 </body>

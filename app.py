@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
 import smtplib
 import imaplib
+from flask import jsonify
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import traceback
 
 import email
 from email.header import decode_header
@@ -52,8 +54,10 @@ def mostrar_correos():
         # Obtener la lista de ID de mensajes
         lista_mensajes = mensajes[0].split()
 
+
         # Iterar sobre cada mensaje
         for mensaje_id in lista_mensajes:
+            
             # Obtener el correo electrónico completo
             resultado, datos_mensaje = conexion.fetch(mensaje_id, "(RFC822)")
             mensaje_raw = datos_mensaje[0][1]
@@ -72,8 +76,12 @@ def mostrar_correos():
             # Obtener el nombre del remitente utilizando parseaddr
             remitente_nombre, remitente_direccion = parseaddr(mensaje["From"])
 
+            mensaje_id = mensaje_id.decode("utf-8") if isinstance(mensaje_id, bytes) else mensaje_id
+            mensaje_id = mensaje_id.replace("b'", "").replace("'", "")
+
             # Agregar información del correo a la lista
             correos.append({
+                "id": str(mensaje_id),
                 "asunto": asunto,
                 "remitente": remitente_nombre,
                 "fecha": mensaje["Date"],
@@ -86,6 +94,55 @@ def mostrar_correos():
     # Renderizar la plantilla HTML con la lista de correos
     return render_template('index.html', correos=correos)
 
+@app.route('/obtener_correo/<correo_id>')
+def obtener_correo(correo_id):
+    try:
+        # Connect to the IMAP server
+        conexion = imaplib.IMAP4_SSL(imap_server)
+        conexion.login(usuario, contrasena)
+
+        # Select the mailbox (inbox in this case)
+        conexion.select("inbox")
+
+        # Fetch details of the email with the provided ID
+        resultado, datos_mensaje = conexion.fetch(correo_id, "(RFC822)")
+        mensaje_raw = datos_mensaje[0][1]
+
+        # Parse the email
+        mensaje = email.message_from_bytes(mensaje_raw)
+
+        # Get email details
+        asunto = decode_header(mensaje["Subject"])[0][0]
+        if isinstance(asunto, bytes):
+            asunto = asunto.decode("utf-8")
+        else:
+            asunto = str(asunto)
+
+        cuerpo_mensaje = obtener_cuerpo_mensaje(mensaje)
+
+        remitente_nombre, remitente_direccion = parseaddr(mensaje["From"])
+        fecha = mensaje["Date"]
+
+        # Close the connection
+        conexion.logout()
+
+        # Return email details as JSON
+        correo = {
+            "asunto": asunto,
+            "remitente": remitente_nombre,
+            "fecha": fecha,
+            "contenido": cuerpo_mensaje,
+        }
+
+        return jsonify(correo)
+
+    except Exception as e:
+        # Print the exception traceback for debugging
+        traceback.print_exc()
+
+        # Handle exceptions (e.g., connection error, email not found, etc.)
+        return jsonify({"error": str(e)}), 500  # Return a JSON response with the error message and status code 500
+    
 @app.route('/nuevo_correo', methods=['GET', 'POST'])
 def nuevo_correo():
     if request.method == 'POST':
