@@ -1,6 +1,8 @@
 # Init
 
-# Connfigure to credencital in app.py
+## Connfigure to credencital in app.py
 
-# usuario = "" # Direccion de tu correo electronico
-# password = "" # Clave para la autenticaion de tu correo
+### Direction to mail
+#### usuario = "" 
+### Password to acces a mail
+#### password = "" 
