@@ -1,83 +1,61 @@
 from flask import Flask, render_template, request, redirect, url_for
-import smtplib
-import imaplib
+import smtplib # Libreria de SMTP para python
+import imaplib # Libreria de IMAP para python
 from flask import jsonify
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import traceback
-
 import email
 from email.header import decode_header
 from email.utils import parseaddr
 
 app = Flask(__name__)
+app.static_folder = 'static'
+
+# Credenciales para el acceso a los servidores: SMTP - IMAP 
+usuario = "" # Direccion de tu correo electronico
+password = "jiie dvza pngx padt" # Clave para la autenticaion de tu correo
 
 # Configuración del servidor SMTP de Gmail
 smtp_server = "smtp.gmail.com"
 smtp_port = 587  # Puerto de Gmail
-usuario_correo = "testpruebascorreotest@gmail.com"
-contrasena_correo = "jiie dvza pngx padt"
-
-app.static_folder = 'static'
 
 # Configuración IMAP
 imap_server = "imap.gmail.com"
-usuario = "testpruebascorreotest@gmail.com"
-contrasena = "jiie dvza pngx padt"
-
-def obtener_cuerpo_mensaje(mensaje):
-    """Obtener el cuerpo del mensaje, considerando mensajes multipart."""
-    if mensaje.is_multipart():
-        for parte in mensaje.walk():
-            if parte.get_content_type() == "text/plain":
-                return parte.get_payload(decode=True).decode("utf-8")
-    else:
-        return mensaje.get_payload(decode=True).decode("utf-8")
-
+    
+# Configuracion para mostrar los correos
 @app.route('/')
 def mostrar_correos():
-    # Conexión al servidor IMAP
-    conexion = imaplib.IMAP4_SSL(imap_server)
-
-    # Autenticación
-    conexion.login(usuario, contrasena)
-
-    # Seleccionar el buzón (inbox en este caso)
-    conexion.select("inbox")
-
-    # Buscar todos los correos electrónicos en el buzón
-    resultado, mensajes = conexion.search(None, "ALL")
+    conexion = imaplib.IMAP4_SSL(imap_server)  # Conexión al servidor IMAP
+    conexion.login(usuario, password) # Autenticación
+    conexion.select("inbox") # Seleccionar el buzón
+    resultado, mensajes = conexion.search(None, "ALL") # Buscar todos los correos electrónicos
 
     correos = []
 
     if resultado == "OK":
-        # Obtener la lista de ID de mensajes
-        lista_mensajes = mensajes[0].split()
+        lista_mensajes = mensajes[0].split() # Obtener la lista de ID de mensajes
 
-
-        # Iterar sobre cada mensaje
         for mensaje_id in lista_mensajes:
-            
             # Obtener el correo electrónico completo
             resultado, datos_mensaje = conexion.fetch(mensaje_id, "(RFC822)")
             mensaje_raw = datos_mensaje[0][1]
 
-            # Parsear el correo electrónico
-            mensaje = email.message_from_bytes(mensaje_raw)
+            mensaje = email.message_from_bytes(mensaje_raw) # Parsear el correo electrónico
 
             # Obtener el asunto del correo
             asunto, encoding = decode_header(mensaje["Subject"])[0]
             if isinstance(asunto, bytes):
                 asunto = asunto.decode(encoding if encoding is not None else "utf-8")
 
-            # Obtener el cuerpo del mensaje
-            cuerpo_mensaje = obtener_cuerpo_mensaje(mensaje)
+            cuerpo_mensaje = obtener_cuerpo_mensaje(mensaje) # Obtener el cuerpo del mensaje
 
-            # Obtener el nombre del remitente utilizando parseaddr
-            remitente_nombre, remitente_direccion = parseaddr(mensaje["From"])
+            # Obtener el nombre del remitente 
+            remitente_nombre, direccion_remitente = parseaddr(mensaje["From"])
 
+            # Guardamo el id del mensaje decodificado 
             mensaje_id = mensaje_id.decode("utf-8") if isinstance(mensaje_id, bytes) else mensaje_id
-            mensaje_id = mensaje_id.replace("b'", "").replace("'", "")
+            mensaje_id = mensaje_id.replace("b'", "").replace("'", "") 
 
             # Agregar información del correo a la lista
             correos.append({
@@ -88,28 +66,23 @@ def mostrar_correos():
                 "contenido": cuerpo_mensaje,
             })
 
-    # Cerrar la conexión
-    conexion.logout()
+    conexion.logout() # Cerrar la conexion
 
-    # Renderizar la plantilla HTML con la lista de correos
-    return render_template('index.html', correos=correos)
+    return render_template('index.html', correos=correos) # Retornamos los resultados a nuestro index.html
 
+# Configuracion para obtener un mail por su Id
 @app.route('/obtener_correo/<correo_id>')
 def obtener_correo(correo_id):
     try:
-        # Connect to the IMAP server
         conexion = imaplib.IMAP4_SSL(imap_server)
-        conexion.login(usuario, contrasena)
-
-        # Select the mailbox (inbox in this case)
+        conexion.login(usuario, password)
         conexion.select("inbox")
 
-        # Fetch details of the email with the provided ID
+        # Obtenemos los datos del mensajej por medio de su Id
         resultado, datos_mensaje = conexion.fetch(correo_id, "(RFC822)")
         mensaje_raw = datos_mensaje[0][1]
 
-        # Parse the email
-        mensaje = email.message_from_bytes(mensaje_raw)
+        mensaje = email.message_from_bytes(mensaje_raw) 
 
         # Get email details
         asunto = decode_header(mensaje["Subject"])[0][0]
@@ -120,13 +93,9 @@ def obtener_correo(correo_id):
 
         cuerpo_mensaje = obtener_cuerpo_mensaje(mensaje)
 
-        remitente_nombre, remitente_direccion = parseaddr(mensaje["From"])
+        remitente_nombre = parseaddr(mensaje["From"])
         fecha = mensaje["Date"]
 
-        # Close the connection
-        conexion.logout()
-
-        # Return email details as JSON
         correo = {
             "asunto": asunto,
             "remitente": remitente_nombre,
@@ -134,15 +103,16 @@ def obtener_correo(correo_id):
             "contenido": cuerpo_mensaje,
         }
 
+        conexion.logout()
+
         return jsonify(correo)
-
-    except Exception as e:
-        # Print the exception traceback for debugging
-        traceback.print_exc()
-
-        # Handle exceptions (e.g., connection error, email not found, etc.)
-        return jsonify({"error": str(e)}), 500  # Return a JSON response with the error message and status code 500
     
+    # Manejamos una excepcion en caso de algun error
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500  
+    
+# Configuracion para enviar un correo
 @app.route('/nuevo_correo', methods=['GET', 'POST'])
 def nuevo_correo():
     if request.method == 'POST':
@@ -150,30 +120,35 @@ def nuevo_correo():
         asunto = request.form['asunto']
         contenido = request.form['contenido']
 
-        # Lógica para enviar el correo
-        enviar_correo(destinatario, asunto, contenido)
+        # Configurar el correo
+        mensaje = MIMEMultipart()
+        mensaje['From'] = usuario
+        mensaje['To'] = destinatario
+        mensaje['Subject'] = asunto
+        mensaje.attach(MIMEText(contenido, 'plain'))
 
-        # Redirigir a la página principal después de enviar el correo
-        return redirect(url_for('mostrar_correos'))
+        # Configurar la conexión al servidor SMTP
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            # Autenticion
+            server.starttls()
+            server.login(usuario, password)
+
+            # Enviar el correo
+            server.sendmail(usuario, destinatario, mensaje.as_string())
+
+            # Redirigir a la página principal después de enviar el correo
+            return redirect(url_for('mostrar_correos'))
 
     return render_template('nuevo_correo.html')
 
-def enviar_correo(destinatario, asunto, contenido):
-    # Configurar el correo
-    mensaje = MIMEMultipart()
-    mensaje['From'] = usuario_correo
-    mensaje['To'] = destinatario
-    mensaje['Subject'] = asunto
-    mensaje.attach(MIMEText(contenido, 'plain'))
-
-    # Configurar la conexión al servidor SMTP
-    with smtplib.SMTP(smtp_server, smtp_port) as server:
-        # Iniciar sesión en el servidor
-        server.starttls()
-        server.login(usuario_correo, contrasena_correo)
-
-        # Enviar el correo
-        server.sendmail(usuario_correo, destinatario, mensaje.as_string())
+def obtener_cuerpo_mensaje(mensaje):
+    """Obtener el cuerpo del mensaje, considerando mensajes multipart."""
+    if mensaje.is_multipart():
+        for parte in mensaje.walk():
+            if parte.get_content_type() == "text/plain":
+                return parte.get_payload(decode=True).decode("utf-8")
+    else:
+        return mensaje.get_payload(decode=True).decode("utf-8")
 
 if __name__ == '__main__':
     app.run(debug=True)
