@@ -1,3 +1,4 @@
+# Librerias necesarias
 from flask import Flask, render_template, request, redirect, url_for
 import smtplib # Libreria de SMTP para python
 import imaplib # Libreria de IMAP para python
@@ -13,7 +14,7 @@ app = Flask(__name__)
 app.static_folder = 'static'
 
 # Credenciales para el acceso a los servidores: SMTP - IMAP 
-usuario = "" # Direccion de tu correo electronico
+usuario = "testpruebascorreotest@gmail.com" # Direccion de tu correo electronico
 password = "jiie dvza pngx padt" # Clave para la autenticaion de tu correo
 
 # Configuración del servidor SMTP de Gmail
